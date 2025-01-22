@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,26 +44,23 @@
             min-height: 100vh;
             padding: 20px;
         }
-
         .background-video {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.3;
-            z-index: -1;
-        }
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.3;
+}
 
-        .buttons {
-            position: relative;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            flex: 1;
-        }
-
+.buttons {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    flex: 1;
+}
         .calculator-container {
             position: relative;
             width: var(--calculator-width);
@@ -114,6 +112,8 @@
             font-family: 'Digital-7', monospace;
             text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
         }
+
+        
 
         .button {
             position: relative;
@@ -239,9 +239,6 @@
     </style>
 </head>
 <body>
-    <video id="backgroundVideo" class="background-video" loop muted playsinline>
-        <source src="background.mp4" type="video/mp4">
-    </video>
     
     <div class="calculator-container">
         <div class="calculator-brand">FRESH KIDS CALC 📟</div>
@@ -254,14 +251,17 @@
         <div class="calculator">
             <input type="text" class="display" id="display" readonly>
             <div class="buttons">
+                <video id="backgroundVideo" class="background-video" loop muted playsinline>
+        <source src="background.mp4" type="video/mp4">
+                </video>
                 <button class="button button--clear" data-action="clear">AC</button>
                 <button class="button button--operator" data-action="delete">DEL</button>
                 <button class="button button--operator" data-action="percentage">%</button>
-                <button class="button button--operator" data-action="operator">/</button>
+                <button class="button button--operator" data-action="operator">÷</button>
                 <button class="button" data-digit="7">7</button>
                 <button class="button" data-digit="8">8</button>
                 <button class="button" data-digit="9">9</button>
-                <button class="button button--operator" data-action="operator">*</button>
+                <button class="button button--operator" data-action="operator">×</button>
                 <button class="button" data-digit="4">4</button>
                 <button class="button" data-digit="5">5</button>
                 <button class="button" data-digit="6">6</button>
@@ -278,167 +278,297 @@
         </div>
     </div>
     <script>
-        class Calculator {
-            constructor(displayElement) {
-                this.displayElement = displayElement;
-                this.clear();
+        class SoundManager {
+            constructor() {
+                this.context = null;
+                this.initAudioContext();
             }
 
-            clear() {
-                this.currentOperand = '0';
-                this.previousOperand = '';
-                this.operation = undefined;
-                this.updateDisplay();
-            }
-
-            delete() {
-                if (this.currentOperand === '0') return;
-                this.currentOperand = this.currentOperand.toString().slice(0, -1);
-                if (this.currentOperand === '') this.currentOperand = '0';
-                this.updateDisplay();
-            }
-
-            appendNumber(number) {
-                if (number === '.' && this.currentOperand.includes('.')) return;
-                if (this.currentOperand === '0' && number !== '.') {
-                    this.currentOperand = number.toString();
-                } else {
-                    this.currentOperand = this.currentOperand.toString() + number.toString();
+            initAudioContext() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.context = new AudioContext();
+                } catch (error) {
+                    console.warn('Web Audio API not supported:', error);
                 }
-                this.updateDisplay();
             }
 
-            chooseOperation(operation) {
-                if (this.currentOperand === '') return;
-                if (this.previousOperand !== '') {
-                    this.compute();
-                }
-                this.operation = operation;
-                this.previousOperand = this.currentOperand;
-                this.currentOperand = '0';
+            playTone(frequency = 440, duration = 0.1, type = 'sine') {
+                if (!this.context) return;
+                
+                const oscillator = this.context.createOscillator();
+                const gainNode = this.context.createGain();
+                
+                oscillator.type = type;
+                oscillator.frequency.setValueAtTime(frequency, this.context.currentTime);
+                
+                gainNode.gain.setValueAtTime(0.1, this.context.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.context.destination);
+                
+                oscillator.start();
+                oscillator.stop(this.context.currentTime + duration);
             }
 
-            compute() {
-                let computation;
-                const prev = parseFloat(this.previousOperand);
-                const current = parseFloat(this.currentOperand);
-                if (isNaN(prev) || isNaN(current)) return;
-
-                switch (this.operation) {
-                    case '+':
-                        computation = prev + current;
-                        break;
-                    case '-':
-                        computation = prev - current;
-                        break;
-                    case '*':
-                        computation = prev * current;
-                        break;
-                    case '/':
-                        if (current === 0) {
-                            this.currentOperand = 'Error';
-                            this.operation = undefined;
-                            this.previousOperand = '';
-                            this.updateDisplay();
-                            return;
-                        }
-                        computation = prev / current;
-                        break;
-                    default:
-                        return;
-                }
-
-                this.currentOperand = this.formatNumber(computation);
-                this.operation = undefined;
-                this.previousOperand = '';
+            playDigitSound() {
+                this.playTone(440, 0.1, 'sine');
             }
 
-            calculatePercentage() {
-                const current = parseFloat(this.currentOperand);
-                if (isNaN(current)) return;
-                this.currentOperand = this.formatNumber(current / 100);
-                this.updateDisplay();
+            playOperatorSound() {
+                this.playTone(550, 0.15, 'triangle');
             }
 
-            formatNumber(number) {
-                if (isNaN(number)) return 'Error';
-                const stringNum = number.toString();
-                if (stringNum.length > 12) {
-                    return number.toExponential(6);
-                }
-                return stringNum;
+            playEqualsSound() {
+                this.playTone(660, 0.2, 'square');
             }
 
-            updateDisplay() {
-                this.displayElement.value = this.currentOperand;
+            playErrorSound() {
+                this.playTone(220, 0.3, 'sawtooth');
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const calculator = new Calculator(document.getElementById('display'));
-            const buttons = document.querySelector('.buttons');
+        class EffectsManager {
+            static addRipple(element, event) {
+                const rect = element.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = event.touches ? event.touches[0].clientX - rect.left : event.clientX - rect.left;
+                const y = event.touches ? event.touches[0].clientY - rect.top : event.clientY - rect.top;
 
-            // Handle button clicks
-            buttons.addEventListener('click', event => {
+                const ripple = document.createElement('span');
+                ripple.className = 'ripple';
+                ripple.style.width = ripple.style.height = `${size}px`;
+                ripple.style.left = `${x - size/2}px`;
+                ripple.style.top = `${y - size/2}px`;
+
+                element.appendChild(ripple);
+                ripple.addEventListener('animationend', () => ripple.remove());
+            }
+
+            static addButtonPress(element) {
+                element.classList.add('button-press');
+                element.addEventListener('animationend', () => {
+                    element.classList.remove('button-press');
+                }, { once: true });
+            }
+
+            static flashDisplay(element, type = 'success') {
+                element.classList.add(`${type}-flash`);
+                element.addEventListener('animationend', () => {
+                    element.classList.remove(`${type}-flash`);
+                }, { once: true });
+            }
+        }
+class Calculator {
+    constructor(displayElement, soundManager) {
+        this.displayElement = displayElement;
+        this.soundManager = soundManager;
+        this.displayValue = '';
+        this.lastOperator = null;
+        this.lastNumber = null;
+        this.newNumberStarted = false;
+        this.justCalculated = false; // New flag to track if we just performed a calculation
+    }
+
+    appendDigit(digit) {
+        if (this.newNumberStarted || this.justCalculated) {
+            this.displayValue = '';
+            this.newNumberStarted = false;
+            this.justCalculated = false;
+        }
+        
+        if (digit === '.' && this.displayValue.includes('.')) {
+            this.soundManager.playErrorSound();
+            return;
+        }
+        
+        this.soundManager.playDigitSound();
+        this.displayValue += digit;
+        this.updateDisplay();
+    }
+
+    handleOperator(operator) {
+        if (this.displayValue === '') return;
+        
+        this.soundManager.playOperatorSound();
+        
+        if (this.lastOperator && !this.newNumberStarted) {
+            this.calculate();
+        }
+        
+        this.lastOperator = operator;
+        this.lastNumber = parseFloat(this.displayValue);
+        this.newNumberStarted = true;
+        this.justCalculated = false;
+    }
+
+    calculate() {
+        if (this.lastOperator === null || this.newNumberStarted) return;
+
+        const currentNumber = parseFloat(this.displayValue);
+        let result;
+
+        switch (this.lastOperator) {
+            case '+':
+                result = this.lastNumber + currentNumber;
+                break;
+            case '-':
+                result = this.lastNumber - currentNumber;
+                break;
+            case '×':
+                result = this.lastNumber * currentNumber;
+                break;
+            case '÷':
+                if (currentNumber === 0) {
+                    this.displayError();
+                    return;
+                }
+                result = this.lastNumber / currentNumber;
+                break;
+            default:
+                return;
+        }
+
+        this.soundManager.playEqualsSound();
+        this.displayValue = this.formatResult(result);
+        this.lastNumber = result; // Store the result as lastNumber
+        this.lastOperator = null;
+        this.updateDisplay();
+        this.justCalculated = true; // Set flag indicating we just performed a calculation
+        EffectsManager.flashDisplay(this.displayElement, 'success');
+    }
+
+    calculatePercentage() {
+        if (this.displayValue === '') return;
+        const value = parseFloat(this.displayValue) / 100;
+        this.displayValue = this.formatResult(value);
+        this.updateDisplay();
+        this.justCalculated = true;
+    }
+
+    clear() {
+        this.displayValue = '';
+        this.lastOperator = null;
+        this.lastNumber = null;
+        this.newNumberStarted = false;
+        this.justCalculated = false;
+        this.updateDisplay();
+    }
+
+    delete() {
+        if (this.justCalculated) {
+            this.clear();
+            return;
+        }
+        this.displayValue = this.displayValue.slice(0, -1);
+        this.updateDisplay();
+    }
+
+    formatResult(number) {
+        if (isNaN(number) || !isFinite(number)) {
+            return 'Error';
+        }
+        const formatted = number.toString();
+        return formatted.length > 12 ? number.toExponential(7) : formatted;
+    }
+
+    displayError() {
+        this.soundManager.playErrorSound();
+        this.displayValue = 'Error';
+        this.updateDisplay();
+        this.lastOperator = null;
+        this.lastNumber = null;
+        this.newNumberStarted = true;
+        this.justCalculated = true;
+        EffectsManager.flashDisplay(this.displayElement, 'error');
+    }
+
+    updateDisplay() {
+        this.displayElement.value = this.displayValue || '0';
+    }
+            }
+
+        class VideoManager {
+            constructor(videoElement) {
+                this.videoElement = videoElement;
+                this.initializeVideo();
+            }
+
+            initializeVideo() {
+                this.handleVisibilityChange = () => {
+                    document.hidden ? this.videoElement.pause() : this.playVideo();
+                };
+
+                document.addEventListener('visibilitychange', this.handleVisibilityChange);
+                document.body.addEventListener('touchstart', () => this.playVideo(), { once: true });
+                
+                this.playVideo();
+            }
+
+            async playVideo() {
+                try {
+                    await this.videoElement.play();
+                } catch (error) {
+                    console.warn('Video playback failed:', error);
+                }
+            }
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            const soundManager = new SoundManager();
+            const calculator = new Calculator(document.getElementById('display'), soundManager);
+            new VideoManager(document.getElementById('backgroundVideo'));
+
+            // Event delegation for calculator buttons
+            document.querySelector('.buttons').addEventListener('click', (event) => {
                 const button = event.target;
                 if (!button.matches('button')) return;
 
-                // Add ripple effect
-                const rect = button.getBoundingClientRect();
-                const ripple = document.createElement('span');
-                ripple.className = 'ripple';
-                const size = Math.max(rect.width, rect.height);
-                ripple.style.width = ripple.style.height = size + 'px';
-                ripple.style.left = (event.clientX - rect.left - size/2) + 'px';
-                ripple.style.top = (event.clientY - rect.top - size/2) + 'px';
-                button.appendChild(ripple);
+                EffectsManager.addRipple(button, event);
+                EffectsManager.addButtonPress(button);
 
-                setTimeout(() => ripple.remove(), 600);
-
-                // Handle button actions
                 if (button.dataset.digit) {
-                    calculator.appendNumber(button.dataset.digit);
+                    calculator.appendDigit(button.dataset.digit);
                 } else if (button.dataset.action) {
                     switch (button.dataset.action) {
+                        case 'operator':
+                            calculator.handleOperator(button.textContent);
+                            break;
+                        case 'calculate':
+                            calculator.calculate();
+                            break;
                         case 'clear':
                             calculator.clear();
+                            soundManager.playOperatorSound();
                             break;
                         case 'delete':
                             calculator.delete();
+                            soundManager.playOperatorSound();
                             break;
                         case 'percentage':
                             calculator.calculatePercentage();
-                            break;
-                        case 'operator':
-                            calculator.chooseOperation(button.textContent);
-                            break;
-                        case 'calculate':
-                            calculator.compute();
-                            calculator.updateDisplay();
+                            soundManager.playOperatorSound();
                             break;
                     }
                 }
             });
 
-            // Handle keyboard input
-            document.addEventListener('keydown', event => {
-                if (event.key >= '0' && event.key <= '9' || event.key === '.') {
-                    calculator.appendNumber(event.key);
-                } else if (event.key === 'Backspace') {
-                    calculator.delete();
-                } else if (event.key === 'Escape') {
-                    calculator.clear();
-                } else if (event.key === 'Enter' || event.key === '=') {
-                    calculator.compute();
-                    calculator.updateDisplay();
-                } else if (['+', '-', '*', '/'].includes(event.key)) {
-                    calculator.chooseOperation(event.key);
+            // Prevent default touch behaviors
+            const preventDefaultTouch = (event) => event.preventDefault();
+            
+            document.addEventListener('touchmove', preventDefaultTouch, { passive: false });
+            document.addEventListener('gesturestart', preventDefaultTouch, { passive: false });
+            
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (event) => {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
                 }
-            });
-
-            // Initialize video background
-            const video = document.getElementById('backgroundVideo');
-            video.play().catch(error => console.log("Video autoplay failed:", error));
+                lastTouchEnd = now;
+            }, { passive: false });
         });
     </script>
 </body>
