@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Fullscreen Video Calculator</title>
     <style>
+        :root {
+            --button-opacity: 0.1;
+            --button-hover-opacity: 0.2;
+            --operator-color: 255, 165, 0;
+            --equals-color: 76, 175, 80;
+            --clear-color: 244, 67, 54;
+            --ripple-color: rgba(255, 255, 255, 0.7);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -18,14 +27,14 @@
             position: fixed;
             width: 100%;
             font-size: 16px;
-            background-color: #000; /* Fallback color if video fails */
+            background-color: #000;
         }
 
         body {
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: Arial, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
         }
 
         .calculator-container {
@@ -35,7 +44,7 @@
             overflow: hidden;
         }
 
-        #background-video {
+        .background-video {
             position: absolute;
             top: 0;
             left: 0;
@@ -43,7 +52,6 @@
             height: 100%;
             object-fit: cover;
             z-index: -1;
-            background: #000; /* Fallback color if video fails */
         }
 
         .calculator {
@@ -58,15 +66,15 @@
             flex-direction: column;
         }
 
-        #display {
+        .display {
             width: 100%;
             height: 10vh;
-            font-size: 5vh;
+            font-size: clamp(2rem, 5vh, 4rem);
             text-align: right;
             padding: 2vh;
             margin-bottom: 2vh;
             border: none;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, var(--button-opacity));
             color: white;
             border-radius: 5px;
         }
@@ -78,188 +86,429 @@
             flex-grow: 1;
         }
 
-        button {
-            font-size: 4vh;
+        .button {
+            position: relative;
+            overflow: hidden;
+            font-size: clamp(1.5rem, 4vh, 3rem);
             border: none;
             border-radius: 5px;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, var(--button-opacity));
             color: white;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
+            transition: background-color 0.3s;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
 
-        button:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+        .button:hover {
+            background-color: rgba(255, 255, 255, var(--button-hover-opacity));
         }
 
-        button:active {
+        .button:active {
             transform: scale(0.95);
         }
 
-        .operator {
-            background-color: rgba(255, 165, 0, 0.5);
+        .button--operator {
+            background-color: rgba(var(--operator-color), 0.5);
         }
 
-        .operator:hover {
-            background-color: rgba(255, 165, 0, 0.7);
+        .button--operator:hover {
+            background-color: rgba(var(--operator-color), 0.7);
         }
 
-        .equals {
-            background-color: rgba(76, 175, 80, 0.5);
+        .button--equals {
+            background-color: rgba(var(--equals-color), 0.5);
         }
 
-        .equals:hover {
-            background-color: rgba(76, 175, 80, 0.7);
+        .button--equals:hover {
+            background-color: rgba(var(--equals-color), 0.7);
         }
 
-        .clear {
-            background-color: rgba(244, 67, 54, 0.5);
+        .button--clear {
+            background-color: rgba(var(--clear-color), 0.5);
         }
 
-        .clear:hover {
-            background-color: rgba(244, 67, 54, 0.7);
+        .button--clear:hover {
+            background-color: rgba(var(--clear-color), 0.7);
         }
 
-        /* iOS-specific styles */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: var(--ripple-color);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .button-press {
+            animation: buttonPress 0.15s ease-in-out;
+        }
+
+        @keyframes buttonPress {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+
+        .success-flash {
+            animation: successFlash 0.3s ease-out;
+        }
+
+        @keyframes successFlash {
+            0% { background-color: rgba(76, 175, 80, 0.5); }
+            100% { background-color: rgba(255, 255, 255, var(--button-opacity)); }
+        }
+
+        .error-flash {
+            animation: errorFlash 0.3s ease-out;
+        }
+
+        @keyframes errorFlash {
+            0% { background-color: rgba(244, 67, 54, 0.5); }
+            100% { background-color: rgba(255, 255, 255, var(--button-opacity)); }
+        }
+
         @supports (-webkit-touch-callout: none) {
-            button {
-                padding: 0; /* Fix iOS button padding */
+            .button {
+                padding: 0;
             }
             
-            #display {
-                font-size: 4vh; /* Slightly smaller display for iOS */
+            .display {
+                font-size: clamp(1.5rem, 4vh, 3rem);
             }
         }
     </style>
 </head>
 <body>
     <div class="calculator-container">
-        <video id="background-video" 
-               playsinline 
-               webkit-playsinline 
-               autoplay 
-               muted 
-               loop 
-               preload="auto"
-               poster="video-poster.jpg"> <!-- Add a fallback image -->
-            <source src="Shrek_5_-_First_Trailer__2025____DreamWorks(720p).mp4" type="video/mp4">
-            Your browser does not support the video tag.
+        <video 
+            class="background-video"
+            id="backgroundVideo"
+            playsinline 
+            webkit-playsinline 
+            autoplay 
+            muted 
+            loop 
+            preload="auto"
+            poster="/api/placeholder/1920/1080">
+            <source src="background.mp4" type="video/mp4">
         </video>
         <div class="calculator">
-            <input type="text" id="display" readonly>
+            <input type="text" class="display" id="display" readonly>
             <div class="buttons">
-                <button class="clear" onclick="clearDisplay()">AC</button>
-                <button class="operator" onclick="deleteLastChar()">DEL</button>
-                <button class="operator" onclick="calculatePercentage()">%</button>
-                <button class="operator" onclick="appendToDisplay('/')">&divide;</button>
-                <button onclick="appendToDisplay('7')">7</button>
-                <button onclick="appendToDisplay('8')">8</button>
-                <button onclick="appendToDisplay('9')">9</button>
-                <button class="operator" onclick="appendToDisplay('*')">&times;</button>
-                <button onclick="appendToDisplay('4')">4</button>
-                <button onclick="appendToDisplay('5')">5</button>
-                <button onclick="appendToDisplay('6')">6</button>
-                <button class="operator" onclick="appendToDisplay('-')">-</button>
-                <button onclick="appendToDisplay('1')">1</button>
-                <button onclick="appendToDisplay('2')">2</button>
-                <button onclick="appendToDisplay('3')">3</button>
-                <button class="operator" onclick="appendToDisplay('+')">+</button>
-                <button onclick="appendToDisplay('0')">0</button>
-                <button onclick="appendToDisplay('00')">0</button>
-                <button onclick="appendToDisplay('.')">.</button>
-                <button class="equals" onclick="calculate()">=</button>
+                <button class="button button--clear" data-action="clear">AC</button>
+                <button class="button button--operator" data-action="delete">DEL</button>
+                <button class="button button--operator" data-action="percentage">%</button>
+                <button class="button button--operator" data-action="operator">/</button>
+                <button class="button" data-digit="7">7</button>
+                <button class="button" data-digit="8">8</button>
+                <button class="button" data-digit="9">9</button>
+                <button class="button button--operator" data-action="operator">*</button>
+                <button class="button" data-digit="4">4</button>
+                <button class="button" data-digit="5">5</button>
+                <button class="button" data-digit="6">6</button>
+                <button class="button button--operator" data-action="operator">-</button>
+                <button class="button" data-digit="1">1</button>
+                <button class="button" data-digit="2">2</button>
+                <button class="button" data-digit="3">3</button>
+                <button class="button button--operator" data-action="operator">+</button>
+                <button class="button" data-digit="0">0</button>
+                <button class="button" data-digit="00">00</button>
+                <button class="button" data-digit=".">.</button>
+                <button class="button button--equals" data-action="calculate">=</button>
             </div>
         </div>
     </div>
     <script>
-        // Initialize video playback
-        document.addEventListener('DOMContentLoaded', function() {
-            const video = document.getElementById('background-video');
-            
-            // Force play on iOS
-            video.play().catch(function(error) {
-                console.log("Video play failed:", error);
-            });
+        class SoundManager {
+            constructor() {
+                this.context = null;
+                this.initAudioContext();
+            }
 
-            // Handle iOS low power mode and background play
-            document.addEventListener('visibilitychange', function() {
-                if (document.hidden) {
-                    video.pause();
-                } else {
-                    video.play().catch(function(error) {
-                        console.log("Video play failed:", error);
-                    });
+            initAudioContext() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.context = new AudioContext();
+                } catch (error) {
+                    console.warn('Web Audio API not supported:', error);
+                }
+            }
+
+            playTone(frequency = 440, duration = 0.1, type = 'sine') {
+                if (!this.context) return;
+                
+                const oscillator = this.context.createOscillator();
+                const gainNode = this.context.createGain();
+                
+                oscillator.type = type;
+                oscillator.frequency.setValueAtTime(frequency, this.context.currentTime);
+                
+                gainNode.gain.setValueAtTime(0.1, this.context.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.context.destination);
+                
+                oscillator.start();
+                oscillator.stop(this.context.currentTime + duration);
+            }
+
+            playDigitSound() {
+                this.playTone(440, 0.1, 'sine');
+            }
+
+            playOperatorSound() {
+                this.playTone(550, 0.15, 'triangle');
+            }
+
+            playEqualsSound() {
+                this.playTone(660, 0.2, 'square');
+            }
+
+            playErrorSound() {
+                this.playTone(220, 0.3, 'sawtooth');
+            }
+        }
+
+        class EffectsManager {
+            static addRipple(element, event) {
+                const rect = element.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = event.touches ? event.touches[0].clientX - rect.left : event.clientX - rect.left;
+                const y = event.touches ? event.touches[0].clientY - rect.top : event.clientY - rect.top;
+
+                const ripple = document.createElement('span');
+                ripple.className = 'ripple';
+                ripple.style.width = ripple.style.height = `${size}px`;
+                ripple.style.left = `${x - size/2}px`;
+                ripple.style.top = `${y - size/2}px`;
+
+                element.appendChild(ripple);
+                ripple.addEventListener('animationend', () => ripple.remove());
+            }
+
+            static addButtonPress(element) {
+                element.classList.add('button-press');
+                element.addEventListener('animationend', () => {
+                    element.classList.remove('button-press');
+                }, { once: true });
+            }
+
+            static flashDisplay(element, type = 'success') {
+                element.classList.add(`${type}-flash`);
+                element.addEventListener('animationend', () => {
+                    element.classList.remove(`${type}-flash`);
+                }, { once: true });
+            }
+        }
+
+        class Calculator {
+            constructor(displayElement, soundManager) {
+                this.displayElement = displayElement;
+                this.soundManager = soundManager;
+                this.displayValue = '';
+                this.lastOperator = null;
+                this.lastNumber = null;
+                this.newNumberStarted = false;
+            }
+
+            appendDigit(digit) {
+                if (this.newNumberStarted) {
+                    this.displayValue = '';
+                    this.newNumberStarted = false;
+                }
+                
+                if (digit === '.' && this.displayValue.includes('.')) {
+                    this.soundManager.playErrorSound();
+                    return;
+                }
+                
+                this.soundManager.playDigitSound();
+                this.displayValue += digit;
+                this.updateDisplay();
+            }
+
+            handleOperator(operator) {
+                if (this.displayValue === '') return;
+                
+                this.soundManager.playOperatorSound();
+                
+                if (this.lastOperator && !this.newNumberStarted) {
+                    this.calculate();
+                }
+                
+                this.lastOperator = operator;
+                this.lastNumber = parseFloat(this.displayValue);
+                this.newNumberStarted = true;
+            }
+
+            calculate() {
+                if (this.lastOperator === null || this.newNumberStarted) return;
+
+                const currentNumber = parseFloat(this.displayValue);
+                let result;
+
+                switch (this.lastOperator) {
+                    case '+':
+                        result = this.lastNumber + currentNumber;
+                        break;
+                    case '-':
+                        result = this.lastNumber - currentNumber;
+                        break;
+                    case '*':
+                        result = this.lastNumber * currentNumber;
+                        break;
+                    case '/':
+                        if (currentNumber === 0) {
+                            this.displayError();
+                            return;
+                        }
+                        result = this.lastNumber / currentNumber;
+                        break;
+                    default:
+                        return;
+                }
+
+                this.soundManager.playEqualsSound();
+                this.displayValue = this.formatResult(result);
+                this.lastOperator = null;
+                this.updateDisplay();
+                this.newNumberStarted = true;
+                EffectsManager.flashDisplay(this.displayElement, 'success');
+            }
+
+            calculatePercentage() {
+                if (this.displayValue === '') return;
+                const value = parseFloat(this.displayValue) / 100;
+                this.displayValue = this.formatResult(value);
+                this.updateDisplay();
+            }
+
+            clear() {
+                this.displayValue = '';
+                this.lastOperator = null;
+                this.lastNumber = null;
+                this.newNumberStarted = false;
+                this.updateDisplay();
+            }
+
+            delete() {
+                this.displayValue = this.displayValue.slice(0, -1);
+                this.updateDisplay();
+            }
+
+            formatResult(number) {
+                if (isNaN(number) || !isFinite(number)) {
+                    return 'Error';
+                }
+                return number.toString().slice(0, 12);
+            }
+
+            displayError() {
+                this.soundManager.playErrorSound();
+                this.displayValue = 'Error';
+                this.updateDisplay();
+                this.lastOperator = null;
+                this.lastNumber = null;
+                this.newNumberStarted = true;
+                EffectsManager.flashDisplay(this.displayElement, 'error');
+            }
+
+            updateDisplay() {
+                this.displayElement.value = this.displayValue;
+            }
+        }
+
+        class VideoManager {
+            constructor(videoElement) {
+                this.videoElement = videoElement;
+                this.initializeVideo();
+            }
+
+            initializeVideo() {
+                this.handleVisibilityChange = () => {
+                    document.hidden ? this.videoElement.pause() : this.playVideo();
+                };
+
+                document.addEventListener('visibilitychange', this.handleVisibilityChange);
+                document.body.addEventListener('touchstart', () => this.playVideo(), { once: true });
+                
+                this.playVideo();
+            }
+
+            async playVideo() {
+                try {
+                    await this.videoElement.play();
+                } catch (error) {
+                    console.warn('Video playback failed:', error);
+                }
+            }
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            const soundManager = new SoundManager();
+            const calculator = new Calculator(document.getElementById('display'), soundManager);
+            new VideoManager(document.getElementById('backgroundVideo'));
+
+            // Event delegation for calculator buttons
+            document.querySelector('.buttons').addEventListener('click', (event) => {
+                const button = event.target;
+                if (!button.matches('button')) return;
+
+                EffectsManager.addRipple(button, event);
+                EffectsManager.addButtonPress(button);
+
+                if (button.dataset.digit) {
+                    calculator.appendDigit(button.dataset.digit);
+                } else if (button.dataset.action) {
+                    switch (button.dataset.action) {
+                        case 'operator':
+                            calculator.handleOperator(button.textContent);
+                            break;
+                        case 'calculate':
+                            calculator.calculate();
+                            break;
+                        case 'clear':
+                            calculator.clear();
+                            soundManager.playOperatorSound();
+                            break;
+                        case 'delete':
+                            calculator.delete();
+                            soundManager.playOperatorSound();
+                            break;
+                        case 'percentage':
+                            calculator.calculatePercentage();
+                            soundManager.playOperatorSound();
+                            break;
+                    }
                 }
             });
 
-            // Handle iOS interaction requirement
-            document.body.addEventListener('touchstart', function() {
-                video.play().catch(function(error) {
-                    console.log("Video play failed:", error);
-                });
-            }, { once: true });
+            // Prevent default touch behaviors
+            const preventDefaultTouch = (event) => event.preventDefault();
+            
+            document.addEventListener('touchmove', preventDefaultTouch, { passive: false });
+            document.addEventListener('gesturestart', preventDefaultTouch, { passive: false });
+            
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (event) => {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, { passive: false });
         });
-
-        // Calculator functions
-        function appendToDisplay(value) {
-            document.getElementById('display').value += value;
-        }
-
-        function clearDisplay() {
-            document.getElementById('display').value = '';
-        }
-
-        function deleteLastChar() {
-            const display = document.getElementById('display');
-            display.value = display.value.slice(0, -1);
-        }
-
-        function calculatePercentage() {
-            try {
-                const display = document.getElementById('display');
-                const value = eval(display.value);
-                display.value = (value / 100).toString();
-            } catch (error) {
-                document.getElementById('display').value = 'Error';
-            }
-        }
-
-        function calculate() {
-            try {
-                const result = eval(document.getElementById('display').value);
-                document.getElementById('display').value = result;
-            } catch (error) {
-                document.getElementById('display').value = 'Error';
-            }
-        }
-
-        // Prevent default touch behaviors
-        document.addEventListener('touchstart', function(e) {
-            if (e.touches.length > 1) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        document.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-        }, { passive: false });
-
-        // Prevent zooming on double-tap
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, { passive: false });
-
-        // Disable pinch-zoom
-        document.addEventListener('gesturestart', function(e) {
-            e.preventDefault();
-        }, { passive: false });
     </script>
 </body>
-    </html>
+</html>
