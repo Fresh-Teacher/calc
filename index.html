@@ -43,6 +43,18 @@
             min-height: 100vh;
             padding: 20px;
         }
+        .background-video {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    z-index: -1;
+    object-fit: cover;
+    opacity: 0.3; /* Adjust this value to control video visibility */
+        }
 
         .calculator-container {
             position: relative;
@@ -227,8 +239,11 @@
     </style>
 </head>
 <body>
+    <video id="backgroundVideo" class="background-video" loop muted playsinline>
+    <source src="your-video-url.mp4" type="video/mp4">
+</video>
     <div class="calculator-container">
-        <div class="calculator-brand">FRESH KIDS CALCULATOR</div>
+        <div class="calculator-brand">FRESH KIDS CALC 📟</div>
         <div class="solar-panel">
             <div class="solar-cell"></div>
             <div class="solar-cell"></div>
