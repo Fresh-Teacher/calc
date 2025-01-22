@@ -332,7 +332,7 @@
 <body>
     
     <div class="calculator-container">
-        <div class="calculator-brand">FRESH KIDS CALC 📟</div>
+        <div class="calculator-brand">FRESH CALC 📟</div><br>
         <div class="solar-panel">
             <div class="solar-cell"></div>
             <div class="solar-cell"></div>
@@ -451,98 +451,121 @@
                 }, { once: true });
             }
         }
-class Calculator {
+        class Calculator {
     constructor(displayElement, soundManager) {
         this.displayElement = displayElement;
         this.soundManager = soundManager;
-        this.displayValue = '';
-        this.lastOperator = null;
-        this.lastNumber = null;
-        this.newNumberStarted = false;
-        this.justCalculated = false; // New flag to track if we just performed a calculation
+        this.currentExpression = '';
+        this.lastResult = null;
+        this.justCalculated = false;
     }
 
     appendDigit(digit) {
-        if (this.newNumberStarted || this.justCalculated) {
-            this.displayValue = '';
-            this.newNumberStarted = false;
+        if (this.justCalculated) {
+            this.currentExpression = '';
             this.justCalculated = false;
         }
         
-        if (digit === '.' && this.displayValue.includes('.')) {
+        if (digit === '.' && this.getLastNumber().includes('.')) {
             this.soundManager.playErrorSound();
             return;
         }
         
         this.soundManager.playDigitSound();
-        this.displayValue += digit;
+        this.currentExpression += digit;
         this.updateDisplay();
     }
 
     handleOperator(operator) {
-        if (this.displayValue === '') return;
-        
-        this.soundManager.playOperatorSound();
-        
-        if (this.lastOperator && !this.newNumberStarted) {
-            this.calculate();
+        if (this.currentExpression === '') {
+            if (this.lastResult !== null) {
+                this.currentExpression = this.lastResult.toString();
+            } else {
+                return;
+            }
         }
         
-        this.lastOperator = operator;
-        this.lastNumber = parseFloat(this.displayValue);
-        this.newNumberStarted = true;
+        // Don't add operator if the last character is already an operator
+        const lastChar = this.currentExpression.slice(-1);
+        if (['+', '-', '×', '÷'].includes(lastChar)) {
+            this.currentExpression = this.currentExpression.slice(0, -1) + operator;
+        } else {
+            this.currentExpression += ' ' + operator + ' ';
+        }
+        
+        this.soundManager.playOperatorSound();
         this.justCalculated = false;
+        this.updateDisplay();
     }
 
     calculate() {
-        if (this.lastOperator === null || this.newNumberStarted) return;
+        if (this.currentExpression === '') return;
 
-        const currentNumber = parseFloat(this.displayValue);
-        let result;
+        // Replace × and ÷ with * and / for evaluation
+        let expression = this.currentExpression
+            .replace(/×/g, '*')
+            .replace(/÷/g, '/');
 
-        switch (this.lastOperator) {
-            case '+':
-                result = this.lastNumber + currentNumber;
-                break;
-            case '-':
-                result = this.lastNumber - currentNumber;
-                break;
-            case '×':
-                result = this.lastNumber * currentNumber;
-                break;
-            case '÷':
-                if (currentNumber === 0) {
-                    this.displayError();
-                    return;
-                }
-                result = this.lastNumber / currentNumber;
-                break;
-            default:
-                return;
+        try {
+            // Safely evaluate the expression
+            const result = this.evaluateExpression(expression);
+            this.soundManager.playEqualsSound();
+            this.lastResult = result;
+            this.currentExpression = result.toString();
+            this.justCalculated = true;
+            this.updateDisplay();
+            EffectsManager.flashDisplay(this.displayElement, 'success');
+        } catch (error) {
+            this.displayError();
+        }
+    }
+
+    evaluateExpression(expression) {
+        // Split the expression into parts
+        const parts = expression.split(' ').filter(part => part !== '');
+        let result = parseFloat(parts[0]);
+
+        for (let i = 1; i < parts.length; i += 2) {
+            const operator = parts[i];
+            const operand = parseFloat(parts[i + 1]);
+
+            if (isNaN(operand)) throw new Error('Invalid number');
+
+            switch (operator) {
+                case '+': result += operand; break;
+                case '-': result -= operand; break;
+                case '*': result *= operand; break;
+                case '/':
+                    if (operand === 0) throw new Error('Division by zero');
+                    result /= operand;
+                    break;
+                default: throw new Error('Invalid operator');
+            }
         }
 
-        this.soundManager.playEqualsSound();
-        this.displayValue = this.formatResult(result);
-        this.lastNumber = result; // Store the result as lastNumber
-        this.lastOperator = null;
-        this.updateDisplay();
-        this.justCalculated = true; // Set flag indicating we just performed a calculation
-        EffectsManager.flashDisplay(this.displayElement, 'success');
+        if (isNaN(result) || !isFinite(result)) throw new Error('Invalid calculation');
+        return result;
     }
 
     calculatePercentage() {
-        if (this.displayValue === '') return;
-        const value = parseFloat(this.displayValue) / 100;
-        this.displayValue = this.formatResult(value);
+        if (this.currentExpression === '') return;
+        const currentNumber = this.getLastNumber();
+        const value = parseFloat(currentNumber) / 100;
+        
+        // Replace the last number with its percentage value
+        this.currentExpression = this.currentExpression.slice(0, -currentNumber.length) + value;
         this.updateDisplay();
-        this.justCalculated = true;
+    }
+
+    getLastNumber() {
+        // Get the last number from the expression
+        const matches = this.currentExpression.match(/[-+×÷]?\s*([0-9.]+)$/);
+        return matches ? matches[1] : '';
     }
 
     clear() {
-        this.displayValue = '';
-        this.lastOperator = null;
-        this.lastNumber = null;
-        this.newNumberStarted = false;
+        this.currentExpression = '';
+        this.lastResult = null;
         this.justCalculated = false;
         this.updateDisplay();
     }
@@ -552,33 +575,29 @@ class Calculator {
             this.clear();
             return;
         }
-        this.displayValue = this.displayValue.slice(0, -1);
-        this.updateDisplay();
-    }
-
-    formatResult(number) {
-        if (isNaN(number) || !isFinite(number)) {
-            return 'Error';
+        
+        // Remove the last character or operator with surrounding spaces
+        if (this.currentExpression.slice(-1) === ' ') {
+            this.currentExpression = this.currentExpression.slice(0, -3);
+        } else {
+            this.currentExpression = this.currentExpression.slice(0, -1);
         }
-        const formatted = number.toString();
-        return formatted.length > 12 ? number.toExponential(7) : formatted;
+        this.updateDisplay();
     }
 
     displayError() {
         this.soundManager.playErrorSound();
-        this.displayValue = 'Error';
-        this.updateDisplay();
-        this.lastOperator = null;
-        this.lastNumber = null;
-        this.newNumberStarted = true;
+        this.currentExpression = 'Error';
+        this.lastResult = null;
         this.justCalculated = true;
+        this.updateDisplay();
         EffectsManager.flashDisplay(this.displayElement, 'error');
     }
 
     updateDisplay() {
-        this.displayElement.value = this.displayValue || '0';
+        this.displayElement.value = this.currentExpression || '0';
     }
-            }
+}
 
         class VideoManager {
             constructor(videoElement) {
