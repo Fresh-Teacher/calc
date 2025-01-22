@@ -6,231 +6,266 @@
     <title>Fullscreen Video Calculator</title>
     <style>
         :root {
-            --button-opacity: 0.1;
-            --button-hover-opacity: 0.2;
-            --operator-color: 255, 165, 0;
-            --equals-color: 76, 175, 80;
-            --clear-color: 244, 67, 54;
-            --ripple-color: rgba(255, 255, 255, 0.7);
-        }
+    --button-opacity: 0.1;
+    --button-hover-opacity: 0.2;
+    --operator-color: 255, 105, 180;
+    --equals-color: 50, 205, 50;
+    --clear-color: 255, 69, 0;
+    --ripple-color: rgba(255, 255, 255, 0.7);
+    --calculator-width: min(95vw, 400px);
+    --calculator-padding: 20px;
+    --border-radius: 30px;
+    --primary-color: #4A235A;
+    --secondary-color: #1A5276;
+}
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            touch-action: none;
-        }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    touch-action: none;
+}
 
-        html, body {
-            height: 100%;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            font-size: 16px;
-            background-color: #000;
-        }
+html, body {
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    font-size: 16px;
+    background-color: #000;
+}
 
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-
-        .calculator-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .background-video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: -1;
-        }
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+}
 
 .calculator-container {
     position: relative;
-    width: 90%;           /* Reduced from 100% */
-    max-width: 500px;     /* Added max-width */
-    height: 90vh;         /* Reduced from 100% */
-    max-height: 800px;    /* Added max-height */
-    margin: auto;         /* Center the container */
+    width: var(--calculator-width);
+    max-height: 90vh;
+    aspect-ratio: 3/4;
+    border-radius: var(--border-radius);
+    background: linear-gradient(145deg, var(--primary-color), var(--secondary-color));
+    box-shadow: 
+        20px 20px 60px rgba(0, 0, 0, 0.5),
+        -20px -20px 60px rgba(255, 255, 255, 0.1),
+        inset 5px 5px 20px rgba(255, 255, 255, 0.1),
+        inset -5px -5px 15px rgba(0, 0, 0, 0.3);
+    padding: var(--calculator-padding);
     overflow: hidden;
-    border-radius: 15px;  /* Added rounded corners */
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Added shadow for depth */
+    border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
-.background-video {
+.calculator-brand {
     position: absolute;
-    top: 50%;
+    top: 10px;
     left: 50%;
-    transform: translate(-50%, -50%); /* Center the video */
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: cover;
-    z-index: -1;
+    transform: translateX(-50%);
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    font-size: 1.2rem;
+    font-weight: bold;
+    z-index: 2;
+}
+
+.calculator-decoration {
+    position: absolute;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.decoration-1 { top: 45px; left: 20px; }
+.decoration-2 { top: 45px; right: 20px; }
+.decoration-3 { bottom: 20px; left: 20px; }
+.decoration-4 { bottom: 20px; right: 20px; }
+
+.solar-panel {
+    position: absolute;
+    top: 15px;
+    right: 30px;
+    width: 80px;
+    height: 20px;
+    background: linear-gradient(45deg, #1a1a1a, #2c3e50);
+    border-radius: 3px;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.solar-cell {
+    flex: 1;
+    background: rgba(52, 152, 219, 0.3);
+    border-radius: 1px;
 }
 
 .calculator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8); /* Slightly darker overlay */
-    padding: 20px;        /* Changed from vh/vw to fixed padding */
+    width: 100%;
     display: flex;
     flex-direction: column;
+    gap: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: calc(var(--border-radius) - 10px);
+    padding: 15px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
 }
 
 .display {
     width: 100%;
-    height: 80px;         /* Fixed height instead of vh */
-    font-size: 2.5rem;    /* Fixed font size */
+    height: 80px;
+    font-size: 2.5rem;
     text-align: right;
-    padding: 10px 20px;   /* Fixed padding */
-    margin-bottom: 20px;  /* Fixed margin */
+    padding: 10px 20px;
+    margin-bottom: 10px;
     border: none;
-    background-color: rgba(255, 255, 255, var(--button-opacity));
-    color: white;
-    border-radius: 10px;
+    background: linear-gradient(145deg, #2C3E50, #34495E);
+    color: #4CAF50;
+    border-radius: 15px;
+    box-shadow: 
+        inset 2px 2px 5px rgba(0, 0, 0, 0.5),
+        inset -2px -2px 5px rgba(255, 255, 255, 0.1);
+    font-family: 'Digital-7', 'Comic Sans MS', cursive;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
 }
 
 .buttons {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;           /* Fixed gap instead of vh */
+    gap: 12px;
     flex-grow: 1;
 }
 
-/* Update the button styles for better proportions */
 .button {
     position: relative;
     overflow: hidden;
-    font-size: 1.8rem;    /* Fixed font size */
+    font-size: 1.5rem;
     border: none;
-    border-radius: 10px;  /* Increased border radius */
-    background-color: rgba(255, 255, 255, var(--button-opacity));
+    border-radius: 15px;
     color: white;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    box-shadow: 
+        5px 5px 10px rgba(0, 0, 0, 0.3),
+        -5px -5px 10px rgba(255, 255, 255, 0.1);
+    font-family: 'Comic Sans MS', cursive;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    min-height: 60px;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    min-height: 60px;     /* Added minimum height */
 }
 
-/* Update media query for mobile devices */
+.button:not(.button--operator):not(.button--equals):not(.button--clear) {
+    background: linear-gradient(145deg, #6C3483, #5B2C6F);
+}
+
+.button--operator {
+    background: linear-gradient(145deg, #C71585, #8B0A50);
+    font-weight: bold;
+}
+
+.button--equals {
+    background: linear-gradient(145deg, #27AE60, #196F3D);
+    font-weight: bold;
+}
+
+.button--clear {
+    background: linear-gradient(145deg, #E74C3C, #A93226);
+    font-weight: bold;
+}
+
+.button:hover {
+    background-color: rgba(255, 255, 255, var(--button-hover-opacity));
+}
+
+.button:active {
+    transform: scale(0.95);
+}
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background-color: var(--ripple-color);
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    pointer-events: none;
+}
+
+.button-press {
+    animation: buttonPress 0.15s ease-in-out;
+}
+
+.success-flash {
+    animation: successFlash 0.3s ease-out;
+}
+
+.error-flash {
+    animation: errorFlash 0.3s ease-out;
+}
+
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+@keyframes buttonPress {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+@keyframes successFlash {
+    0% { background-color: rgba(76, 175, 80, 0.5); }
+    100% { background-color: rgba(255, 255, 255, var(--button-opacity)); }
+}
+
+@keyframes errorFlash {
+    0% { background-color: rgba(244, 67, 54, 0.5); }
+    100% { background-color: rgba(255, 255, 255, var(--button-opacity)); }
+}
+
 @media (max-width: 480px) {
     .calculator-container {
-        width: 100%;
-        height: 100vh;
+        width: 95vw;
+        height: auto;
+        aspect-ratio: 2/3;
         border-radius: 0;
     }
 
     .display {
-        height: 70px;
+        height: 60px;
         font-size: 2rem;
     }
 
     .button {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         min-height: 50px;
+    }
+
+    .calculator-brand {
+        font-size: 1rem;
+    }
+
+    .calculator-decoration {
+        font-size: 0.7rem;
     }
 }
 
-        .button:hover {
-            background-color: rgba(255, 255, 255, var(--button-hover-opacity));
-        }
-
-        .button:active {
-            transform: scale(0.95);
-        }
-
-        .button--operator {
-            background-color: rgba(var(--operator-color), 0.5);
-        }
-
-        .button--operator:hover {
-            background-color: rgba(var(--operator-color), 0.7);
-        }
-
-        .button--equals {
-            background-color: rgba(var(--equals-color), 0.5);
-        }
-
-        .button--equals:hover {
-            background-color: rgba(var(--equals-color), 0.7);
-        }
-
-        .button--clear {
-            background-color: rgba(var(--clear-color), 0.5);
-        }
-
-        .button--clear:hover {
-            background-color: rgba(var(--clear-color), 0.7);
-        }
-
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background-color: var(--ripple-color);
-            transform: scale(0);
-            animation: ripple 0.6s linear;
-            pointer-events: none;
-        }
-
-        @keyframes ripple {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
-
-        .button-press {
-            animation: buttonPress 0.15s ease-in-out;
-        }
-
-        @keyframes buttonPress {
-            0% { transform: scale(1); }
-            50% { transform: scale(0.95); }
-            100% { transform: scale(1); }
-        }
-
-        .success-flash {
-            animation: successFlash 0.3s ease-out;
-        }
-
-        @keyframes successFlash {
-            0% { background-color: rgba(76, 175, 80, 0.5); }
-            100% { background-color: rgba(255, 255, 255, var(--button-opacity)); }
-        }
-
-        .error-flash {
-            animation: errorFlash 0.3s ease-out;
-        }
-
-        @keyframes errorFlash {
-            0% { background-color: rgba(244, 67, 54, 0.5); }
-            100% { background-color: rgba(255, 255, 255, var(--button-opacity)); }
-        }
-
-        @supports (-webkit-touch-callout: none) {
-            .button {
-                padding: 0;
-            }
-            
-            .display {
-                font-size: clamp(1.5rem, 4vh, 3rem);
-            }
-        }
+@supports (-webkit-touch-callout: none) {
+    .button {
+        padding: 0;
+    }
+    
+    .display {
+        font-size: clamp(1.5rem, 4vh, 3rem);
+    }
+}
     </style>
 </head>
 <body>
